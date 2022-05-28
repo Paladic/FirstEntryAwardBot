@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `__efmigrationshistory` (
   PRIMARY KEY (`MigrationId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Дамп данных таблицы xxxxx.__efmigrationshistory: ~1 rows (приблизительно)
+-- Дамп данных таблицы xxxxx.__efmigrationshistory: ~2 rows (приблизительно)
 /*!40000 ALTER TABLE `__efmigrationshistory` DISABLE KEYS */;
 INSERT INTO `__efmigrationshistory` (`MigrationId`, `ProductVersion`) VALUES
 	('20220528155649_1thMigration', '6.0.5'),
