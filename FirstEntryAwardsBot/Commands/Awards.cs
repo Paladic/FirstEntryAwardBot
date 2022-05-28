@@ -1,10 +1,13 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.Serialization.Formatters;
 using System.Xml.Xsl;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Fergun.Interactive;
+using Fergun.Interactive.Pagination;
 using FirstEntryAwardsBot.Common;
+using Infrastructure.Context;
 using Infrastructure.DataAccessLayer;
 using Infrastructure.Models;
 using Microsoft.EntityFrameworkCore.Internal;
@@ -93,6 +96,68 @@ public class Awards : InteractionModuleBase<SocketInteractionContext>
                 await ((SocketTextChannel) channel).SendMessageAsync(embed: embed);
             }
         }
+    }
+
+    [SlashCommand("оп-награда-поиск", "посмотреть, выдавался ли пользователю ключ")]
+    [DefaultMemberPermissions(GuildPermission.Administrator)]
+    [EnabledInDm(false)]
+    public async Task CheckUserAwardsAsync([Summary("пользователь", "какого пользователя смотреть будем")] SocketGuildUser user)
+    {
+        await DeferAsync();
+        Embed embed;
+        var award = await _keyGifts.GetActivatedKey(Context.Guild.Id, user.Id);
+        if (award == null)
+        {
+            embed = await Context.Channel.CreateBaseEmbed(Context.User, $"Просмотр награды: {user.Username}",
+                $"у {user.Mention} еще нет полученной награды");
+            await Context.Interaction.ModifyOriginalResponseAsync(x => x.Embed = embed);
+        }
+        else
+        {
+            var page = $"● Ключ: {award.Gift}\n";
+            page += $"● Добавил: <@{award.AddedBy}> (<t:{award.AddedAt}:F>)\n";
+            page += $"● Получил: <@{award.ActivationBy}> (<t:{award.ActivationAt}:F>)";
+            embed = await Context.Channel.CreateBaseEmbed(Context.User, $"Просмотр награды: {user.Username}", page);
+            await Context.Interaction.ModifyOriginalResponseAsync(x => x.Embed = embed);
+        }
+    }
+
+    [SlashCommand("оп-награда-просмотр", "просмотреть все ключи на сервере", runMode: RunMode.Async)]
+    [DefaultMemberPermissions(GuildPermission.Administrator)]
+    [EnabledInDm(false)]
+    public async Task AllAwardsCheck()
+    {
+        await DeferAsync();
+        
+        var awards = await _keyGifts.GetAllKeysFromServer(Context.Guild.Id);
+        if (awards.Count == 0)
+        {
+            var embed = await Context.Channel.CreateBaseEmbed(Context.User, "Наград не найдено.", "Упс, а ключиков то нет...");
+            await Context.Interaction.ModifyOriginalResponseAsync(x => x.Embed = embed);
+            return;
+        }
+
+        var pages = new List<string>();
+        foreach (var award in awards)
+        {
+            var page = $"● Ключ: {award.Gift}\n";
+            page += $"● Добавил: <@{award.AddedBy}> (<t:{award.AddedAt}:F>)\n";
+            if (award.ActivationBy == 0)
+            {
+                page += "● Ключ еще не получен";
+            }
+            else
+            {
+                page += $"● Получил: <@{award.ActivationBy}> (<t:{award.ActivationAt}:F>)";
+            }
+
+            pages.Add(page);
+        }
+
+        await Context.Interaction.ModifyOriginalResponseAsync(x => x.Content = "** **");
+        var paginator = await Extensions.CreatePaginatedEmbed($"Всего наград: {awards.Count} " +
+                                                              $"(Доступных: {awards.Count(x => x.ActivationAt == 0)})", pages, Context.User);
+        await Interactive.SendPaginatorAsync(paginator, Context.Channel, TimeSpan.FromMinutes(10));
     }
     
     [SlashCommand("оп-награда-добавить", "добавляет ключи" ,runMode: RunMode.Async)]

@@ -50,7 +50,7 @@ namespace FirstEntryAwardsBot.Common
             // await Extensions.createAuthorEmbed(Context.User)
         }
         
-        public static Task<Paginator> CreatePaginatedEmbed(string title, List<string> pages, IUser user, string url = null)
+        public static Task<Paginator> CreatePaginatedEmbed(string title, List<string> pages, IUser user)
         {
             var paginator = new LazyPaginatorBuilder()
                 .AddUser(user)
@@ -71,7 +71,7 @@ namespace FirstEntryAwardsBot.Common
                     .WithAuthor(await CreateAuthorEmbed(user))
                     .WithTitle(title)
                     .WithDescription(pages[index])
-                    .WithImageUrl(url ?? string.Empty)
+                    
                     .WithFooter($"Страница {index + 1} из {pages.Count}")
                     .WithColor(new Color(33, 100, 222));
 
